@@ -2,51 +2,96 @@
 <html>
 <head>
   <title>Ultra Tag Battle</title>
-
-  <!-- Firebase scripts -->
-  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
-
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js"></script>
   <style>
-    body { font-family: sans-serif; text-align:center; background:#222; color:#fff; }
-    input, button { padding:10px; margin:5px; font-size:16px; }
-    #gameMenu { display:none; }
-    #loginDiv, #signupDiv { margin-top:30px; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #homeScreen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    button {
+      padding: 20px 40px;
+      font-size: 24px;
+      margin: 20px;
+      border: none;
+      border-radius: 10px;
+      background: #ff4747;
+      color: white;
+      cursor: pointer;
+    }
+
+    #coins {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 20px;
+    }
+
+    #skinsSection {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .skin {
+      display: inline-block;
+      margin: 10px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .skin img {
+      width: 50px;
+      height: 50px;
+      border: 2px solid white;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
-  <h1>Ultra Tag Battle</h1>
-
   <!-- Login -->
-  <div id="loginDiv">
+  <div id="loginScreen">
     <h2>Login</h2>
-    <input type="email" id="loginEmail" placeholder="Email"><br>
-    <input type="password" id="loginPassword" placeholder="Password"><br>
+    <input id="email" placeholder="Email"><br>
+    <input id="password" type="password" placeholder="Password"><br>
+    <button onclick="signUp()">Sign Up</button>
     <button onclick="login()">Login</button>
-    <p>Don’t have an account? <a href="#" onclick="showSignup()">Sign up</a></p>
   </div>
 
-  <!-- Signup -->
-  <div id="signupDiv" style="display:none;">
-    <h2>Sign Up</h2>
-    <input type="email" id="signupEmail" placeholder="Email"><br>
-    <input type="password" id="signupPassword" placeholder="Password"><br>
-    <button onclick="signup()">Sign Up</button>
-    <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
-  </div>
+  <!-- Home Screen -->
+  <div id="homeScreen">
+    <div id="coins">Coins: <span id="coinsValue">0</span></div>
+    <button id="playBtn">Play Now!</button>
 
-  <!-- Game Menu -->
-  <div id="gameMenu">
-    <h2>Welcome!</h2>
-    <button onclick="startGame()">Play</button>
-    <button onclick="showSettings()">Settings</button>
-    <button onclick="quitGame()">Quit</button>
-    <br><br>
-    <button onclick="logout()">Log out</button>
+    <div id="skinsSection">
+      <h3>Skins</h3>
+      <div id="skinsContainer"></div>
+    </div>
   </div>
 
   <script>
-    // ---------------- Firebase Config ----------------
+    // Firebase setup
     const firebaseConfig = {
       apiKey: "AIzaSyB2bJ2KCaa7sauM5way_jvsl3URZ2Dn1bQ",
       authDomain: "ultratagbattle.firebaseapp.com",
@@ -55,68 +100,102 @@
       messagingSenderId: "952807178224",
       appId: "1:952807178224:web:ff274c332e070319662735"
     };
-
-    firebase.initializeApp(firebaseConfig);
+    const app = firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    // ---------------- Signup ----------------
-    async function signup() {
-      const email = document.getElementById("signupEmail").value;
-      const password = document.getElementById("signupPassword").value;
-      try {
-        await auth.createUserWithEmailAndPassword(email, password);
-        alert("Account created! You are now logged in.");
-      } catch (error) {
-        alert("Signup failed: " + error.message);
-        console.error(error);
+    let userId = null;
+    let coins = 200;
+    let ownedSkins = [];
+    let username = "";
+
+    const skins = [
+      {id: "skin1", name: "Alex", price: 50, img: "https://i.ibb.co/2tL7WcF/pixel1.png"},
+      {id: "skin2", name: "Sam", price: 75, img: "https://i.ibb.co/2yp0kH1/pixel2.png"},
+      {id: "skin3", name: "Maya", price: 100, img: "https://i.ibb.co/3dP3XtX/pixel3.png"},
+      {id: "skin4", name: "Liam", price: 120, img: "https://i.ibb.co/Rz4PHKt/pixel4.png"},
+      {id: "skin5", name: "Zoe", price: 150, img: "https://i.ibb.co/9n3RPLp/pixel5.png"},
+    ];
+
+    function signUp() {
+      const email = document.getElementById("email").value;
+      const pass = document.getElementById("password").value;
+      auth.createUserWithEmailAndPassword(email, pass)
+        .then(cred => {
+          userId = cred.user.uid;
+          db.collection("users").doc(userId).set({
+            coins: 200,
+            ownedSkins: [],
+            username: email.split("@")[0]
+          });
+        })
+        .catch(err => alert(err.message));
+    }
+
+    function login() {
+      const email = document.getElementById("email").value;
+      const pass = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, pass)
+        .then(cred => {
+          userId = cred.user.uid;
+          loadUserData();
+        })
+        .catch(err => alert("Login failed: " + err.message));
+    }
+
+    function loadUserData() {
+      db.collection("users").doc(userId).get().then(doc => {
+        if (doc.exists) {
+          const data = doc.data();
+          coins = data.coins || 200;
+          ownedSkins = data.ownedSkins || [];
+          username = data.username || "Player";
+          showHome();
+        }
+      });
+    }
+
+    function showHome() {
+      document.getElementById("loginScreen").style.display = "none";
+      document.getElementById("homeScreen").style.display = "flex";
+      document.getElementById("coinsValue").innerText = coins;
+      renderSkins();
+    }
+
+    function renderSkins() {
+      const container = document.getElementById("skinsContainer");
+      container.innerHTML = "";
+      skins.forEach(skin => {
+        const div = document.createElement("div");
+        div.className = "skin";
+        div.innerHTML = `
+          <img src="${skin.img}" alt="${skin.name}">
+          <p>${skin.name}</p>
+          <p>${ownedSkins.includes(skin.id) ? "Owned" : skin.price + " coins"}</p>
+        `;
+        div.onclick = () => buySkin(skin);
+        container.appendChild(div);
+      });
+    }
+
+    function buySkin(skin) {
+      if (ownedSkins.includes(skin.id)) {
+        alert("You already own this skin!");
+        return;
       }
-    }
-
-    // ---------------- Login ----------------
-    async function login() {
-      const email = document.getElementById("loginEmail").value;
-      const password = document.getElementById("loginPassword").value;
-      try {
-        await auth.signInWithEmailAndPassword(email, password);
-        console.log("Logged in as", email);
-      } catch (error) {
-        alert("Login failed: " + error.message);
-        console.error(error);
-      }
-    }
-
-    // ---------------- Logout ----------------
-    async function logout() {
-      await auth.signOut();
-    }
-
-    // ---------------- State Change ----------------
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        document.getElementById("loginDiv").style.display = "none";
-        document.getElementById("signupDiv").style.display = "none";
-        document.getElementById("gameMenu").style.display = "block";
+      if (coins >= skin.price) {
+        coins -= skin.price;
+        ownedSkins.push(skin.id);
+        db.collection("users").doc(userId).update({
+          coins: coins,
+          ownedSkins: ownedSkins
+        });
+        document.getElementById("coinsValue").innerText = coins;
+        renderSkins();
       } else {
-        document.getElementById("loginDiv").style.display = "block";
-        document.getElementById("signupDiv").style.display = "none";
-        document.getElementById("gameMenu").style.display = "none";
+        alert("Not enough coins!");
       }
-    });
-
-    // ---------------- Switch Between Forms ----------------
-    function showSignup() {
-      document.getElementById("loginDiv").style.display = "none";
-      document.getElementById("signupDiv").style.display = "block";
     }
-    function showLogin() {
-      document.getElementById("signupDiv").style.display = "none";
-      document.getElementById("loginDiv").style.display = "block";
-    }
-
-    // ---------------- Placeholder Game Functions ----------------
-    function startGame() { alert("Start game clicked"); }
-    function showSettings() { alert("Settings clicked"); }
-    function quitGame() { alert("Quit clicked"); }
   </script>
 </body>
 </html>
