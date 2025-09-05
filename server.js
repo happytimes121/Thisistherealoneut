@@ -1,29 +1,45 @@
+// server.js
+const http = require("http");
 const WebSocket = require("ws");
 
-const port = process.env.PORT || 3000; // Railway gives you a port
-const server = new WebSocket.Server({ port });
+// Railway provides the port via environment variable
+const port = process.env.PORT || 3000;
 
-console.log(`Server running on port ${port}`);
+// Create a basic HTTP server
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("WebSocket server running\n");
+});
 
-server.on("connection", (socket) => {
+// Attach WebSocket server to HTTP server
+const wss = new WebSocket.Server({ server });
+
+// Handle new connections
+wss.on("connection", (socket) => {
   console.log("New player connected");
 
-  // Send welcome message
+  // Send welcome message to the new client
   socket.send("Welcome to the multiplayer server!");
 
-  // Handle messages from players
+  // Listen for messages from clients
   socket.on("message", (message) => {
     console.log("Received:", message.toString());
 
-    // Broadcast to all players
-    server.clients.forEach((client) => {
+    // Broadcast the message to all connected clients
+    wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(message.toString());
       }
     });
   });
 
+  // Handle client disconnect
   socket.on("close", () => {
     console.log("Player disconnected");
   });
+});
+
+// Start the server
+server.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
