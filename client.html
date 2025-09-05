@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Multiplayer Game</title>
+  <title>Ultra Tag Battle</title>
 
   <!-- Firebase scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
@@ -11,10 +11,11 @@
     body { font-family: sans-serif; text-align:center; background:#222; color:#fff; }
     button { padding:10px 20px; margin:10px; font-size:18px; cursor:pointer; }
     #gameMenu { display:none; }
+    #loginDiv { margin-top:50px; }
   </style>
 </head>
 <body>
-  <h1>Multiplayer Game</h1>
+  <h1>Ultra Tag Battle</h1>
 
   <!-- Sign-in -->
   <div id="loginDiv">
@@ -29,7 +30,7 @@
   </div>
 
   <script>
-    // Firebase config
+    // ---------------- Firebase Config ----------------
     const firebaseConfig = {
       apiKey: "AIzaSyB2bJ2KCaa7sauM5way_jvsl3URZ2Dn1bQ",
       authDomain: "ultratagbattle.firebaseapp.com",
@@ -38,29 +39,30 @@
       messagingSenderId: "952807178224",
       appId: "1:952807178224:web:ff274c332e070319662735"
     };
+
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
+    // ---------------- DOM Elements ----------------
     const loginDiv = document.getElementById("loginDiv");
     const gameMenu = document.getElementById("gameMenu");
 
-    // Google Sign-In
-    document.getElementById("googleSignInBtn").onclick = () => {
+    // ---------------- Google Sign-In ----------------
+    document.getElementById("googleSignInBtn").onclick = async () => {
       const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider)
-        .then((result) => {
-          const user = result.user;
-          console.log("Signed in as:", user.displayName, user.uid);
-          loginDiv.style.display = "none";
-          gameMenu.style.display = "block";
-        })
-        .catch((error) => {
-          console.error("Sign-in error:", error);
-          alert("Sign-in failed");
-        });
+      try {
+        const result = await auth.signInWithPopup(provider);
+        const user = result.user;
+        console.log("Signed in as:", user.displayName, user.uid);
+        loginDiv.style.display = "none";
+        gameMenu.style.display = "block";
+      } catch (error) {
+        console.error("Sign-in error:", error);
+        alert("Sign-in failed. Make sure your domain is authorized in Firebase.");
+      }
     };
 
-    // Keep user logged in
+    // ---------------- Keep User Logged In ----------------
     auth.onAuthStateChanged((user) => {
       if (user) {
         loginDiv.style.display = "none";
@@ -72,10 +74,10 @@
       }
     });
 
-    // Placeholder functions
-    function startGame(){ alert("Start game clicked"); }
-    function showSettings(){ alert("Settings clicked"); }
-    function quitGame(){ alert("Quit clicked"); }
+    // ---------------- Placeholder Game Functions ----------------
+    function startGame() { alert("Start game clicked"); }
+    function showSettings() { alert("Settings clicked"); }
+    function quitGame() { alert("Quit clicked"); }
   </script>
 </body>
 </html>
