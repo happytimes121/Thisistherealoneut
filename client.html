@@ -1,192 +1,157 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>UltraTag Battle</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #222; color: white; text-align: center; }
-    #home, #auth { display: none; }
-    button { padding: 10px 20px; margin: 5px; border: none; border-radius: 8px; background: #ff4747; color: white; cursor: pointer; }
-    #skinsContainer { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; }
-    .skin { border: 2px solid #fff; border-radius: 10px; padding: 10px; background: #333; width: 160px; }
-    .skin img { width: 100%; border-radius: 8px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign Up / Login</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+    body {
+        font-family: 'Roboto', sans-serif;
+        background: linear-gradient(135deg, #ff4e50, #f9d423);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+    .container {
+        background: #fff;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        width: 350px;
+        text-align: center;
+    }
+    h2 {
+        margin-bottom: 20px;
+        color: #333;
+    }
+    input {
+        width: 100%;
+        padding: 12px;
+        margin: 8px 0;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        font-size: 16px;
+    }
+    button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 12px;
+        border: none;
+        border-radius: 8px;
+        background: #ff4e50;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    button:hover {
+        background: #f9d423;
+        color: #333;
+    }
+    .toggle-btn {
+        background: none;
+        color: #ff4e50;
+        font-size: 14px;
+        margin-top: 10px;
+        cursor: pointer;
+    }
+    .error {
+        color: red;
+        font-size: 14px;
+    }
+    .success {
+        color: green;
+        font-size: 14px;
+    }
+</style>
 </head>
 <body>
-  <h1>UltraTag Battle</h1>
 
-  <!-- Login / Signup -->
-  <div id="auth">
-    <h2>Sign Up / Log In</h2>
-    <input type="email" id="email" placeholder="Email"><br>
-    <input type="password" id="password" placeholder="Password"><br>
-    <button id="signupBtn">Sign Up</button>
-    <button id="loginBtn">Log In</button>
-  </div>
+<div class="container">
+    <h2 id="form-title">Sign Up</h2>
+    <div id="message"></div>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="action-btn">Sign Up</button>
+    <button class="toggle-btn" id="toggle-btn">Already have an account? Login</button>
+</div>
 
-  <!-- Home Screen -->
-  <div id="home">
-    <h2>Welcome!</h2>
-    <button id="playBtn">Play Now!</button>
-
-    <div style="margin-top: 20px; text-align:left; padding-left: 20px;">
-      <h3>Your Skins</h3>
-      <div>Coins: <span id="coinsValue">0</span></div>
-      <div id="skinsContainer"></div>
-    </div>
-  </div>
-
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js"></script>
-
-  <script>
-    // --- Firebase Config ---
+<script>
+    // Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
     const firebaseConfig = {
       apiKey: "AIzaSyB2bJ2KCaa7sauM5way_jvsl3URZ2Dn1bQ",
       authDomain: "ultratagbattle.firebaseapp.com",
       projectId: "ultratagbattle",
       storageBucket: "ultratagbattle.firebasestorage.app",
       messagingSenderId: "952807178224",
-      appId: "1:952807178224:web:ff274c332e070319662735"
+      appId: "1:952807178224:web:ff274c332e070319662735",
+      measurementId: "G-Q7SRR0WXW0"
     };
 
-    // Init Firebase
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    const db = firebase.firestore();
 
-    // --- Skins ---
-    const skins = [
-      { id: "basic_male", name: "Basic (Male)", price: 0, img: "basic_male.png" },
-      { id: "basic_female", name: "Basic (Female)", price: 0, img: "basic_female.png" },
-      { id: "skin3", name: "Skin 3", price: 100, img: "https://via.placeholder.com/150" },
-      { id: "skin4", name: "Skin 4", price: 120, img: "https://via.placeholder.com/150" },
-      { id: "skin5", name: "Skin 5", price: 150, img: "https://via.placeholder.com/150" }
-    ];
+    let isLogin = false;
 
-    let userId = null;
-    let coins = 200;
-    let ownedSkins = [];
-    let equippedSkin = null;
+    const formTitle = document.getElementById('form-title');
+    const actionBtn = document.getElementById('action-btn');
+    const toggleBtn = document.getElementById('toggle-btn');
+    const messageDiv = document.getElementById('message');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
 
-    // --- Auth Buttons ---
-    document.getElementById("signupBtn").addEventListener("click", () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(userCred => {
-          userId = userCred.user.uid;
-          // Default user data
-          const defaultData = {
-            coins: 200,
-            ownedSkins: ["basic_male"],
-            equippedSkin: "basic_male"
-          };
-          db.collection("users").doc(userId).set(defaultData);
-        })
-        .catch(err => alert("Error: " + err.message));
+    toggleBtn.addEventListener('click', () => {
+        isLogin = !isLogin;
+        formTitle.textContent = isLogin ? 'Login' : 'Sign Up';
+        actionBtn.textContent = isLogin ? 'Login' : 'Sign Up';
+        toggleBtn.textContent = isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login";
+        messageDiv.textContent = '';
     });
 
-    document.getElementById("loginBtn").addEventListener("click", () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      auth.signInWithEmailAndPassword(email, password)
-        .catch(err => alert("Error: " + err.message));
-    });
+    actionBtn.addEventListener('click', () => {
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
 
-    // --- Auth State Change ---
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        userId = user.uid;
-        loadUserData();
-        document.getElementById("auth").style.display = "none";
-        document.getElementById("home").style.display = "block";
-      } else {
-        document.getElementById("auth").style.display = "block";
-        document.getElementById("home").style.display = "none";
-      }
-    });
-
-    // --- Load User Data ---
-    function loadUserData() {
-      db.collection("users").doc(userId).get().then(doc => {
-        if (doc.exists) {
-          const data = doc.data();
-          coins = data.coins ?? 200;
-          ownedSkins = data.ownedSkins ?? ["basic_male"];
-          equippedSkin = data.equippedSkin ?? "basic_male";
-          document.getElementById("coinsValue").innerText = coins;
-          renderSkins();
+        if (!email || !password) {
+            showMessage('Please enter email and password', 'error');
+            return;
         }
-      });
-    }
 
-    // --- Render Skins ---
-    function renderSkins() {
-      const container = document.getElementById("skinsContainer");
-      container.innerHTML = "";
-      skins.forEach(skin => {
-        const div = document.createElement("div");
-        div.className = "skin";
-        const owned = ownedSkins.includes(skin.id);
-        const isEquipped = (equippedSkin === skin.id);
-
-        div.innerHTML = `
-          <img src="${skin.img}" alt="${skin.name}">
-          <div style="font-weight:bold;">${skin.name}</div>
-          <div>${owned ? (isEquipped ? "<span style='color:lime'>Equipped</span>" : "Owned") : (skin.price === 0 ? "Free" : skin.price + " coins")}</div>
-        `;
-
-        const btn = document.createElement("button");
-        if (owned) {
-          if (isEquipped) {
-            btn.textContent = "Equipped";
-            btn.disabled = true;
-          } else {
-            btn.textContent = "Equip";
-            btn.onclick = () => equipSkin(skin.id);
-          }
+        if (isLogin) {
+            // Login
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    const user = userCredential.user;
+                    showMessage('Logged in successfully!', 'success');
+                    // First-time login check
+                    if (!user.metadata.lastSignInTime) {
+                        showMessage('Set your new password', 'success');
+                    }
+                })
+                .catch(error => showMessage(error.message, 'error'));
         } else {
-          btn.textContent = (skin.price === 0 ? "Claim" : `Buy (${skin.price})`);
-          btn.onclick = () => buySkin(skin);
+            // Sign Up
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    showMessage('Account created! You can now log in.', 'success');
+                })
+                .catch(error => showMessage(error.message, 'error'));
         }
+    });
 
-        div.appendChild(btn);
-        container.appendChild(div);
-      });
+    function showMessage(msg, type) {
+        messageDiv.textContent = msg;
+        messageDiv.className = type;
     }
+</script>
 
-    // --- Buy Skin ---
-    function buySkin(skin) {
-      if (ownedSkins.includes(skin.id)) return;
-      if (skin.price === 0) {
-        ownedSkins.push(skin.id);
-      } else {
-        if (coins < skin.price) return alert("Not enough coins!");
-        coins -= skin.price;
-        ownedSkins.push(skin.id);
-      }
-      saveUserData();
-    }
-
-    // --- Equip Skin ---
-    function equipSkin(skinId) {
-      if (!ownedSkins.includes(skinId)) return;
-      equippedSkin = skinId;
-      saveUserData();
-    }
-
-    // --- Save User Data ---
-    function saveUserData() {
-      db.collection("users").doc(userId).update({
-        coins: coins,
-        ownedSkins: ownedSkins,
-        equippedSkin: equippedSkin
-      });
-      document.getElementById("coinsValue").innerText = coins;
-      renderSkins();
-    }
-  </script>
 </body>
 </html>
