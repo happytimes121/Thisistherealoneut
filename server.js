@@ -5,10 +5,9 @@ const WebSocket = require("ws");
 
 const port = process.env.PORT || 3000;
 
-// Create HTTP server
+// HTTP server to serve client.html
 const server = http.createServer((req, res) => {
   if (req.url === "/" || req.url === "/client.html") {
-    // Serve the client.html file
     const filePath = path.join(__dirname, "client.html");
     fs.readFile(filePath, (err, data) => {
       if (err) {
@@ -25,21 +24,27 @@ const server = http.createServer((req, res) => {
   }
 });
 
-// WebSocket server
+// WebSocket server attached to HTTP server
 const wss = new WebSocket.Server({ server });
 
+// Broadcast function
+function broadcast(message, sender) {
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN && client !== sender) {
+      client.send(message);
+    }
+  });
+}
+
+// When a client connects
 wss.on("connection", (socket) => {
   console.log("New player connected");
   socket.send("Welcome to the multiplayer server!");
 
   socket.on("message", (message) => {
     console.log("Received:", message.toString());
-    // Broadcast to all clients
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message.toString());
-      }
-    });
+    // Send message to all other clients
+    broadcast(message.toString(), socket);
   });
 
   socket.on("close", () => console.log("Player disconnected"));
