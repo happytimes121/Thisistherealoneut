@@ -16,8 +16,8 @@
   </div>
 
   <script>
-    // Replace this with your Railway server URL
-    const socket = new WebSocket("wss:thisistherealoneut-production.up.railway.app");
+    // Connect to the same server
+    const socket = new WebSocket(`wss://${window.location.host}`);
 
     const log = document.getElementById("log");
 
@@ -33,6 +33,7 @@
 
     function sendMessage() {
       const input = document.getElementById("messageInput");
+      if(input.value.trim() === "") return;
       socket.send(input.value);
       logMessage("You: " + input.value);
       input.value = "";
