@@ -1,184 +1,251 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Ultra Tag Battle - Login</title>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultra Tag Battle</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
     body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-    }
-    h1 {
-      font-size: 3em;
-      color: limegreen;
-      text-shadow: 2px 2px 6px black;
-      margin-bottom: 20px;
+        font-family: 'Roboto', sans-serif;
+        background: linear-gradient(135deg, #1e3c72, #2a5298);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
     }
     .container {
-      background: #222;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0px 0px 10px #000;
-      width: 300px;
-      text-align: center;
+        background: #fff;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        width: 350px;
+        text-align: center;
     }
-    input, button {
-      width: 90%;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
-      border: none;
+    h1 {
+        font-size: 28px;
+        margin-bottom: 20px;
+        color: #00ff00;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px #0f0, 0 0 20px #090;
+    }
+    h2 {
+        margin-bottom: 20px;
+        color: #333;
     }
     input {
-      background: #333;
-      color: white;
+        width: 100%;
+        padding: 12px;
+        margin: 8px 0;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        font-size: 16px;
     }
     button {
-      background: limegreen;
-      color: black;
-      font-weight: bold;
-      cursor: pointer;
+        width: 100%;
+        padding: 12px;
+        margin-top: 12px;
+        border: none;
+        border-radius: 8px;
+        background: #00ff00;
+        color: black;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
     }
-    .hidden {
-      display: none;
+    button:hover {
+        background: #00cc00;
+        color: white;
     }
-    #logoutBtn {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: red;
-      color: white;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 5px;
-      font-weight: bold;
-      cursor: pointer;
+    .toggle-btn {
+        background: none;
+        color: #2a5298;
+        font-size: 14px;
+        margin-top: 10px;
+        cursor: pointer;
     }
-  </style>
+    .error {
+        color: red;
+        font-size: 14px;
+    }
+    .success {
+        color: green;
+        font-size: 14px;
+    }
+    #homepage {
+        display: none;
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        background: #fff;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    #logout-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: red;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+</style>
 </head>
 <body>
-  <h1>Ultra Tag Battle</h1>
 
-  <!-- Login / Signup Form -->
-  <div id="auth-container" class="container">
-    <h2>Login / Sign Up</h2>
+<!-- Login / Signup -->
+<div class="container" id="auth-container">
+    <h1>Ultra Tag Battle</h1>
+    <h2 id="form-title">Sign Up</h2>
+    <div id="message"></div>
     <input type="email" id="email" placeholder="Email">
     <input type="password" id="password" placeholder="Password">
-    <button onclick="signUp()">Sign Up</button>
-    <button onclick="login()">Login</button>
-    <p id="message"></p>
-  </div>
+    <button id="action-btn">Sign Up</button>
+    <button class="toggle-btn" id="toggle-btn">Already have an account? Login</button>
+</div>
 
-  <!-- Username creation -->
-  <div id="username-container" class="container hidden">
+<!-- Homepage -->
+<div id="homepage">
+    <button id="logout-btn">Log Out</button>
+</div>
+
+<!-- Username Setup -->
+<div class="container" id="username-setup" style="display:none;">
     <h2>Create a Username</h2>
-    <input type="text" id="usernameInput" placeholder="Enter Username">
-    <button onclick="setUsername()">Save Username</button>
-    <p id="usernameMessage"></p>
-  </div>
+    <input type="text" id="username-input" placeholder="Enter username">
+    <button id="save-username">Save Username</button>
+    <div id="username-message"></div>
+</div>
 
-  <!-- Homepage -->
-  <div id="homepage" class="hidden">
-    <button id="logoutBtn" onclick="logout()">Log Out</button>
-    <!-- Empty page except logout button -->
-  </div>
-
-  <script>
-    // Firebase config
+<script>
+    // Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyB2bJ2KCaa7sauM5way_jvsl3URZ2Dn1bQ",
       authDomain: "ultratagbattle.firebaseapp.com",
       projectId: "ultratagbattle",
-      storageBucket: "ultratagbattle.firebasestorage.app",
+      storageBucket: "ultratagbattle.appspot.com",
       messagingSenderId: "952807178224",
       appId: "1:952807178224:web:ff274c332e070319662735",
       measurementId: "G-Q7SRR0WXW0"
     };
+
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    function showMessage(msg, type="") {
-      document.getElementById("message").innerText = msg;
-    }
+    let isLogin = false;
 
-    function signUp() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(() => showMessage("Account created! Please log in."))
-        .catch(err => showMessage(err.message));
-    }
+    const formTitle = document.getElementById('form-title');
+    const actionBtn = document.getElementById('action-btn');
+    const toggleBtn = document.getElementById('toggle-btn');
+    const messageDiv = document.getElementById('message');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
 
-    function login() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => showMessage("Logging in..."))
-        .catch(err => showMessage(err.message));
-    }
+    const authContainer = document.getElementById('auth-container');
+    const homepage = document.getElementById('homepage');
+    const usernameSetup = document.getElementById('username-setup');
+    const usernameInput = document.getElementById('username-input');
+    const saveUsernameBtn = document.getElementById('save-username');
+    const usernameMessage = document.getElementById('username-message');
+    const logoutBtn = document.getElementById('logout-btn');
 
-    async function setUsername() {
-      const username = document.getElementById("usernameInput").value.trim();
-      const user = auth.currentUser;
-      if (!username) {
-        document.getElementById("usernameMessage").innerText = "Username cannot be empty.";
-        return;
-      }
-
-      // Check if username is already taken
-      const query = await db.collection("users").where("username", "==", username).get();
-      if (!query.empty) {
-        document.getElementById("usernameMessage").innerText = "Username already in use. Pick another.";
-        return;
-      }
-
-      // Save username to Firestore
-      await db.collection("users").doc(user.uid).set({
-        email: user.email,
-        username: username
-      });
-
-      loadHomepage();
-    }
-
-    function loadHomepage() {
-      document.getElementById("auth-container").classList.add("hidden");
-      document.getElementById("username-container").classList.add("hidden");
-      document.getElementById("homepage").classList.remove("hidden");
-    }
-
-    function logout() {
-      auth.signOut();
-    }
-
-    auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        // Check if username exists
-        const doc = await db.collection("users").doc(user.uid).get();
-        if (!doc.exists || !doc.data().username) {
-          document.getElementById("auth-container").classList.add("hidden");
-          document.getElementById("username-container").classList.remove("hidden");
-        } else {
-          loadHomepage();
-        }
-      } else {
-        // Logged out
-        document.getElementById("auth-container").classList.remove("hidden");
-        document.getElementById("username-container").classList.add("hidden");
-        document.getElementById("homepage").classList.add("hidden");
-      }
+    toggleBtn.addEventListener('click', () => {
+        isLogin = !isLogin;
+        formTitle.textContent = isLogin ? 'Login' : 'Sign Up';
+        actionBtn.textContent = isLogin ? 'Login' : 'Sign Up';
+        toggleBtn.textContent = isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login";
+        messageDiv.textContent = '';
     });
-  </script>
+
+    actionBtn.addEventListener('click', () => {
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
+        if (!email || !password) {
+            showMessage('Please enter email and password', 'error');
+            return;
+        }
+        if (isLogin) {
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    showMessage('Logged in successfully!', 'success');
+                })
+                .catch(error => showMessage(error.message, 'error'));
+        } else {
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(() => {
+                    showMessage('Account created! You can now log in.', 'success');
+                })
+                .catch(error => showMessage(error.message, 'error'));
+        }
+    });
+
+    function showMessage(msg, type) {
+        messageDiv.textContent = msg;
+        messageDiv.className = type;
+    }
+
+    function showHomepage() {
+        authContainer.style.display = "none";
+        usernameSetup.style.display = "none";
+        homepage.style.display = "block";
+    }
+
+    saveUsernameBtn.addEventListener('click', async () => {
+        const username = usernameInput.value.trim();
+        if (!username) {
+            usernameMessage.textContent = "Username cannot be empty.";
+            usernameMessage.style.color = "red";
+            return;
+        }
+        const query = await db.collection("users").where("username", "==", username).get();
+        if (!query.empty) {
+            usernameMessage.textContent = "That username is already taken.";
+            usernameMessage.style.color = "red";
+            return;
+        }
+        const user = auth.currentUser;
+        await db.collection("users").doc(user.uid).set({
+            email: user.email,
+            username: username
+        }, { merge: true });
+        showHomepage();
+    });
+
+    logoutBtn.addEventListener('click', () => {
+        auth.signOut();
+    });
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            const userRef = db.collection("users").doc(user.uid);
+            userRef.get().then(doc => {
+                if (!doc.exists || !doc.data().username) {
+                    authContainer.style.display = "none";
+                    homepage.style.display = "none";
+                    usernameSetup.style.display = "block";
+                } else {
+                    showHomepage();
+                }
+            });
+        } else {
+            authContainer.style.display = "block";
+            homepage.style.display = "none";
+            usernameSetup.style.display = "none";
+        }
+    });
+</script>
+
 </body>
 </html>
