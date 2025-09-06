@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UltraTag Battle - Login</title>
+  <title>Ultra Tag Battle - Login</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #ff416c, #ff4b2b);
+      font-family: 'Trebuchet MS', sans-serif;
+      background: radial-gradient(circle at top, #0f0f0f, #1a1a1a, #000);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -18,56 +18,77 @@
       margin: 0;
       color: #fff;
     }
+    .title {
+      position: absolute;
+      top: 40px;
+      font-size: 42px;
+      font-weight: bold;
+      color: limegreen;
+      text-transform: uppercase;
+      text-shadow: 0 0 15px lime, 0 0 25px green;
+      letter-spacing: 3px;
+    }
     .container {
-      background: rgba(0,0,0,0.75);
+      background: rgba(0,0,0,0.85);
       padding: 30px;
       border-radius: 15px;
       width: 350px;
       text-align: center;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      box-shadow: 0 0 20px rgba(0,255,0,0.5);
+      border: 2px solid limegreen;
     }
     h2 {
       margin-bottom: 20px;
+      color: limegreen;
     }
     input {
       width: 90%;
       padding: 12px;
       margin: 10px 0;
       border-radius: 8px;
-      border: none;
+      border: 2px solid #444;
+      background: #111;
+      color: white;
       font-size: 14px;
+      outline: none;
+    }
+    input:focus {
+      border-color: limegreen;
+      box-shadow: 0 0 10px limegreen;
     }
     button {
       width: 95%;
       padding: 12px;
       margin: 10px 0;
-      background: #ff416c;
+      background: limegreen;
       border: none;
       border-radius: 8px;
       font-size: 16px;
-      color: white;
+      font-weight: bold;
+      color: black;
       cursor: pointer;
       transition: 0.3s;
+      text-transform: uppercase;
     }
     button:hover {
-      background: #ff4b2b;
+      background: #00ff55;
+      box-shadow: 0 0 15px limegreen;
     }
-    #username-section {
-      display: none;
-    }
+    #username-section { display: none; }
     .hidden { display: none; }
     .error {
-      color: #ffaaaa;
+      color: #ff4b4b;
       margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>UltraTag Battle</h2>
+  <div class="title">Ultra Tag Battle</div>
 
+  <div class="container">
     <!-- Login/Signup Form -->
     <div id="auth-section">
+      <h2>Login / Sign Up</h2>
       <input type="email" id="email" placeholder="Email" />
       <input type="password" id="password" placeholder="Password" />
       <button onclick="signUp()">Sign Up</button>
@@ -77,7 +98,7 @@
 
     <!-- Username Setup -->
     <div id="username-section">
-      <h3>Choose a Username</h3>
+      <h2>Set Username</h2>
       <input type="text" id="username" placeholder="Enter a unique username" />
       <button onclick="setUsername()">Save Username</button>
       <p id="username-error" class="error"></p>
@@ -85,7 +106,7 @@
 
     <!-- Dashboard -->
     <div id="dashboard" class="hidden">
-      <h3>Welcome, <span id="display-username"></span>!</h3>
+      <h2>Welcome, <span id="display-username"></span>!</h2>
       <button onclick="logOut()">Log Out</button>
     </div>
   </div>
@@ -95,12 +116,12 @@
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
 
-    // ✅ Firebase Config (fixed)
+    // ✅ Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyB2bJ2KCaa7sauM5way_jvsl3URZ2Dn1bQ",
       authDomain: "ultratagbattle.firebaseapp.com",
       projectId: "ultratagbattle",
-      storageBucket: "ultratagbattle.appspot.com", // fixed
+      storageBucket: "ultratagbattle.appspot.com",
       messagingSenderId: "952807178224",
       appId: "1:952807178224:web:ff274c332e070319662735",
       measurementId: "G-Q7SRR0WXW0"
@@ -150,23 +171,29 @@
         return;
       }
 
-      // Check uniqueness
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("username", "==", username));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        errorBox.innerText = "Username already taken. Choose another.";
-        return;
-      }
-
       try {
-        await setDoc(doc(db, "users", user.uid), { username: username, email: user.email });
+        // Check uniqueness
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("username", "==", username));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          errorBox.innerText = "Username already taken. Choose another.";
+          return;
+        }
+
+        // Save username
+        await setDoc(doc(db, "users", user.uid), {
+          username: username,
+          email: user.email
+        });
+
         document.getElementById("username-section").style.display = "none";
         document.getElementById("dashboard").classList.remove("hidden");
         document.getElementById("display-username").innerText = username;
+
       } catch (error) {
-        errorBox.innerText = "Error saving username.";
+        errorBox.innerText = "Error saving username. Check console.";
         console.error("Set Username Error:", error);
       }
     }
@@ -175,19 +202,22 @@
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         console.log("User logged in:", user.email);
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
+        try {
+          const docRef = doc(db, "users", user.uid);
+          const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-          // User already has username
-          document.getElementById("auth-section").style.display = "none";
-          document.getElementById("username-section").style.display = "none";
-          document.getElementById("dashboard").classList.remove("hidden");
-          document.getElementById("display-username").innerText = docSnap.data().username;
-        } else {
-          // Ask for username
-          document.getElementById("auth-section").style.display = "none";
-          document.getElementById("username-section").style.display = "block";
+          if (docSnap.exists()) {
+            document.getElementById("auth-section").style.display = "none";
+            document.getElementById("username-section").style.display = "none";
+            document.getElementById("dashboard").classList.remove("hidden");
+            document.getElementById("display-username").innerText = docSnap.data().username;
+          } else {
+            document.getElementById("auth-section").style.display = "none";
+            document.getElementById("username-section").style.display = "block";
+          }
+        } catch (err) {
+          console.error("Firestore Error:", err);
+          document.getElementById("auth-error").innerText = "⚠ Firestore error: check console.";
         }
       } else {
         console.log("No user logged in.");
