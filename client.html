@@ -1,122 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ultra Tag Battle - Login</title>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
-  <style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultra Tag Battle - Sign Up / Login</title>
+
+<!-- Firebase Compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
     body {
-      font-family: 'Trebuchet MS', sans-serif;
-      background: radial-gradient(circle at top, #0f0f0f, #1a1a1a, #000);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      color: #fff;
+        font-family: 'Roboto', sans-serif;
+        background: linear-gradient(135deg, #000000, #222222);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        color: white;
     }
     .title {
-      position: absolute;
-      top: 40px;
-      font-size: 42px;
-      font-weight: bold;
-      color: limegreen;
-      text-transform: uppercase;
-      text-shadow: 0 0 15px lime, 0 0 25px green;
-      letter-spacing: 3px;
+        position: absolute;
+        top: 40px;
+        font-size: 42px;
+        font-weight: bold;
+        color: limegreen;
+        text-transform: uppercase;
+        text-shadow: 0 0 15px lime, 0 0 30px green, 0 0 45px limegreen;
+        letter-spacing: 3px;
     }
     .container {
-      background: rgba(0,0,0,0.85);
-      padding: 30px;
-      border-radius: 15px;
-      width: 350px;
-      text-align: center;
-      box-shadow: 0 0 20px rgba(0,255,0,0.5);
-      border: 2px solid limegreen;
+        background: #fff;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        width: 350px;
+        text-align: center;
+        color: #333;
     }
     h2 {
-      margin-bottom: 20px;
-      color: limegreen;
+        margin-bottom: 20px;
+        color: #333;
     }
     input {
-      width: 90%;
-      padding: 12px;
-      margin: 10px 0;
-      border-radius: 8px;
-      border: 2px solid #444;
-      background: #111;
-      color: white;
-      font-size: 14px;
-      outline: none;
-    }
-    input:focus {
-      border-color: limegreen;
-      box-shadow: 0 0 10px limegreen;
+        width: 100%;
+        padding: 12px;
+        margin: 8px 0;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        font-size: 16px;
     }
     button {
-      width: 95%;
-      padding: 12px;
-      margin: 10px 0;
-      background: limegreen;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: bold;
-      color: black;
-      cursor: pointer;
-      transition: 0.3s;
-      text-transform: uppercase;
+        width: 100%;
+        padding: 12px;
+        margin-top: 12px;
+        border: none;
+        border-radius: 8px;
+        background: limegreen;
+        color: black;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
     }
     button:hover {
-      background: #00ff55;
-      box-shadow: 0 0 15px limegreen;
+        background: #00ff55;
+        box-shadow: 0 0 10px limegreen;
     }
-    #username-section { display: none; }
-    .hidden { display: none; }
-    .error {
-      color: #ff4b4b;
-      margin-top: 10px;
+    .toggle-btn {
+        background: none;
+        color: limegreen;
+        font-size: 14px;
+        margin-top: 10px;
+        cursor: pointer;
     }
-  </style>
+    .error { color: red; font-size: 14px; }
+    .success { color: green; font-size: 14px; }
+</style>
 </head>
 <body>
-  <div class="title">Ultra Tag Battle</div>
 
-  <div class="container">
-    <!-- Login/Signup Form -->
-    <div id="auth-section">
-      <h2>Login / Sign Up</h2>
-      <input type="email" id="email" placeholder="Email" />
-      <input type="password" id="password" placeholder="Password" />
-      <button onclick="signUp()">Sign Up</button>
-      <button onclick="logIn()">Log In</button>
-      <p id="auth-error" class="error"></p>
-    </div>
+<div class="title">Ultra Tag Battle</div>
 
-    <!-- Username Setup -->
-    <div id="username-section">
-      <h2>Set Username</h2>
-      <input type="text" id="username" placeholder="Enter a unique username" />
-      <button onclick="setUsername()">Save Username</button>
-      <p id="username-error" class="error"></p>
-    </div>
+<div class="container" id="auth-box">
+    <h2 id="form-title">Sign Up</h2>
+    <div id="message"></div>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="action-btn">Sign Up</button>
+    <button class="toggle-btn" id="toggle-btn">Already have an account? Login</button>
+</div>
 
-    <!-- Dashboard -->
-    <div id="dashboard" class="hidden">
-      <h2>Welcome, <span id="display-username"></span>!</h2>
-      <button onclick="logOut()">Log Out</button>
-    </div>
-  </div>
+<div class="container" id="username-box" style="display:none;">
+    <h2>Choose Username</h2>
+    <div id="username-message"></div>
+    <input type="text" id="username" placeholder="Unique username">
+    <button id="save-username-btn">Save Username</button>
+</div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+<div class="container" id="dashboard" style="display:none;">
+    <h2>Welcome, <span id="display-username"></span>!</h2>
+    <button id="logout-btn">Log Out</button>
+</div>
 
-    // ✅ Firebase Config
+<script>
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyB2bJ2KCaa7sauM5way_jvsl3URZ2Dn1bQ",
       authDomain: "ultratagbattle.firebaseapp.com",
@@ -127,105 +118,101 @@
       measurementId: "G-Q7SRR0WXW0"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    // --- Sign Up ---
-    async function signUp() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      try {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } catch (error) {
-        document.getElementById("auth-error").innerText = error.message;
-        console.error("Sign Up Error:", error);
-      }
-    }
+    let isLogin = false;
 
-    // --- Log In ---
-    async function logIn() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-      } catch (error) {
-        document.getElementById("auth-error").innerText = error.message;
-        console.error("Login Error:", error);
-      }
-    }
+    const formTitle = document.getElementById('form-title');
+    const actionBtn = document.getElementById('action-btn');
+    const toggleBtn = document.getElementById('toggle-btn');
+    const messageDiv = document.getElementById('message');
 
-    // --- Log Out ---
-    async function logOut() {
-      await signOut(auth);
-    }
+    toggleBtn.addEventListener('click', () => {
+        isLogin = !isLogin;
+        formTitle.textContent = isLogin ? 'Login' : 'Sign Up';
+        actionBtn.textContent = isLogin ? 'Login' : 'Sign Up';
+        toggleBtn.textContent = isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login";
+        messageDiv.textContent = '';
+    });
 
-    // --- Handle Username ---
-    async function setUsername() {
-      const user = auth.currentUser;
-      const username = document.getElementById("username").value.trim();
-      const errorBox = document.getElementById("username-error");
+    actionBtn.addEventListener('click', () => {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
 
-      if (!username) {
-        errorBox.innerText = "Username cannot be empty.";
-        return;
-      }
-
-      try {
-        // Check uniqueness
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("username", "==", username));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          errorBox.innerText = "Username already taken. Choose another.";
-          return;
+        if (!email || !password) {
+            showMessage('Please enter email and password', 'error');
+            return;
         }
 
-        // Save username
-        await setDoc(doc(db, "users", user.uid), {
-          username: username,
-          email: user.email
+        if (isLogin) {
+            auth.signInWithEmailAndPassword(email, password)
+                .then(async userCredential => {
+                    const user = userCredential.user;
+                    const userDoc = await db.collection("users").doc(user.uid).get();
+                    if (userDoc.exists) {
+                        // Go to dashboard
+                        showDashboard(userDoc.data().username);
+                    } else {
+                        // Ask for username
+                        document.getElementById('auth-box').style.display = "none";
+                        document.getElementById('username-box').style.display = "block";
+                    }
+                })
+                .catch(error => showMessage(error.message, 'error'));
+        } else {
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(() => showMessage('Account created! Now log in.', 'success'))
+                .catch(error => showMessage(error.message, 'error'));
+        }
+    });
+
+    document.getElementById('save-username-btn').addEventListener('click', async () => {
+        const user = auth.currentUser;
+        const username = document.getElementById('username').value.trim();
+        const msgBox = document.getElementById('username-message');
+
+        if (!username) {
+            msgBox.textContent = "Username cannot be empty.";
+            msgBox.className = "error";
+            return;
+        }
+
+        // Check uniqueness
+        const snapshot = await db.collection("users").where("username", "==", username).get();
+        if (!snapshot.empty) {
+            msgBox.textContent = "Username already taken.";
+            msgBox.className = "error";
+            return;
+        }
+
+        await db.collection("users").doc(user.uid).set({
+            email: user.email,
+            username: username
         });
 
-        document.getElementById("username-section").style.display = "none";
-        document.getElementById("dashboard").classList.remove("hidden");
-        document.getElementById("display-username").innerText = username;
+        showDashboard(username);
+    });
 
-      } catch (error) {
-        errorBox.innerText = "Error saving username. Check console.";
-        console.error("Set Username Error:", error);
-      }
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        auth.signOut();
+        document.getElementById('dashboard').style.display = "none";
+        document.getElementById('auth-box').style.display = "block";
+    });
+
+    function showDashboard(username) {
+        document.getElementById('username-box').style.display = "none";
+        document.getElementById('auth-box').style.display = "none";
+        document.getElementById('dashboard').style.display = "block";
+        document.getElementById('display-username').textContent = username;
     }
 
-    // --- Auth State Change ---
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        console.log("User logged in:", user.email);
-        try {
-          const docRef = doc(db, "users", user.uid);
-          const docSnap = await getDoc(docRef);
+    function showMessage(msg, type) {
+        messageDiv.textContent = msg;
+        messageDiv.className = type;
+    }
+</script>
 
-          if (docSnap.exists()) {
-            document.getElementById("auth-section").style.display = "none";
-            document.getElementById("username-section").style.display = "none";
-            document.getElementById("dashboard").classList.remove("hidden");
-            document.getElementById("display-username").innerText = docSnap.data().username;
-          } else {
-            document.getElementById("auth-section").style.display = "none";
-            document.getElementById("username-section").style.display = "block";
-          }
-        } catch (err) {
-          console.error("Firestore Error:", err);
-          document.getElementById("auth-error").innerText = "⚠ Firestore error: check console.";
-        }
-      } else {
-        console.log("No user logged in.");
-        document.getElementById("auth-section").style.display = "block";
-        document.getElementById("username-section").style.display = "none";
-        document.getElementById("dashboard").classList.add("hidden");
-      }
-    });
-  </script>
 </body>
 </html>
