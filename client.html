@@ -180,6 +180,8 @@
             auth.signInWithEmailAndPassword(email, password)
                 .then(() => {
                     showMessage('Logged in successfully!', 'success');
+                    // Immediately check username and go to homepage/setup
+                    setTimeout(checkUserProfile, 800);
                 })
                 .catch(error => showMessage(error.message, 'error'));
         } else {
@@ -200,6 +202,21 @@
         authContainer.style.display = "none";
         usernameSetup.style.display = "none";
         homepage.style.display = "block";
+    }
+
+    function checkUserProfile() {
+        const user = auth.currentUser;
+        if (!user) return;
+        const userRef = db.collection("users").doc(user.uid);
+        userRef.get().then(doc => {
+            if (!doc.exists || !doc.data().username) {
+                authContainer.style.display = "none";
+                homepage.style.display = "none";
+                usernameSetup.style.display = "block";
+            } else {
+                showHomepage();
+            }
+        });
     }
 
     saveUsernameBtn.addEventListener('click', async () => {
@@ -229,16 +246,7 @@
 
     auth.onAuthStateChanged(user => {
         if (user) {
-            const userRef = db.collection("users").doc(user.uid);
-            userRef.get().then(doc => {
-                if (!doc.exists || !doc.data().username) {
-                    authContainer.style.display = "none";
-                    homepage.style.display = "none";
-                    usernameSetup.style.display = "block";
-                } else {
-                    showHomepage();
-                }
-            });
+            checkUserProfile();
         } else {
             authContainer.style.display = "block";
             homepage.style.display = "none";
