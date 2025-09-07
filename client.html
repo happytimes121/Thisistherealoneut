@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ultra Tag Battle</title>
+<title>Ultra Tag Battle - Sign Up / Login</title>
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
     body {
@@ -79,33 +78,11 @@
         color: green;
         font-size: 14px;
     }
-    #homepage {
-        display: none;
-        position: relative;
-        width: 100%;
-        height: 100vh;
-        background: #fff;
-        border-radius: 0;
-        box-shadow: none;
-    }
-    #logout-btn {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background: red;
-        color: white;
-        padding: 10px 15px;
-        border: none;
-        border-radius: 6px;
-        font-weight: bold;
-        cursor: pointer;
-    }
 </style>
 </head>
 <body>
 
-<!-- Login / Signup -->
-<div class="container" id="auth-container">
+<div class="container">
     <h1>Ultra Tag Battle</h1>
     <h2 id="form-title">Sign Up</h2>
     <div id="message"></div>
@@ -115,34 +92,21 @@
     <button class="toggle-btn" id="toggle-btn">Already have an account? Login</button>
 </div>
 
-<!-- Homepage -->
-<div id="homepage">
-    <button id="logout-btn">Log Out</button>
-</div>
-
-<!-- Username Setup -->
-<div class="container" id="username-setup" style="display:none;">
-    <h2>Create a Username</h2>
-    <input type="text" id="username-input" placeholder="Enter username">
-    <button id="save-username">Save Username</button>
-    <div id="username-message"></div>
-</div>
-
 <script>
-    // Firebase configuration
+    // Fixed Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyB2bJ2KCaa7sauM5way_jvsl3URZ2Dn1bQ",
       authDomain: "ultratagbattle.firebaseapp.com",
       projectId: "ultratagbattle",
-      storageBucket: "ultratagbattle.appspot.com",
+      storageBucket: "ultratagbattle.appspot.com", // ✅ FIXED
       messagingSenderId: "952807178224",
       appId: "1:952807178224:web:ff274c332e070319662735",
       measurementId: "G-Q7SRR0WXW0"
     };
 
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    const db = firebase.firestore();
 
     let isLogin = false;
 
@@ -152,14 +116,6 @@
     const messageDiv = document.getElementById('message');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
-
-    const authContainer = document.getElementById('auth-container');
-    const homepage = document.getElementById('homepage');
-    const usernameSetup = document.getElementById('username-setup');
-    const usernameInput = document.getElementById('username-input');
-    const saveUsernameBtn = document.getElementById('save-username');
-    const usernameMessage = document.getElementById('username-message');
-    const logoutBtn = document.getElementById('logout-btn');
 
     toggleBtn.addEventListener('click', () => {
         isLogin = !isLogin;
@@ -172,21 +128,24 @@
     actionBtn.addEventListener('click', () => {
         const email = emailInput.value.trim();
         const password = passwordInput.value.trim();
+
         if (!email || !password) {
             showMessage('Please enter email and password', 'error');
             return;
         }
+
         if (isLogin) {
+            // Login
             auth.signInWithEmailAndPassword(email, password)
-                .then(() => {
+                .then(userCredential => {
+                    const user = userCredential.user;
                     showMessage('Logged in successfully!', 'success');
-                    // Immediately check username and go to homepage/setup
-                    setTimeout(checkUserProfile, 800);
                 })
                 .catch(error => showMessage(error.message, 'error'));
         } else {
+            // Sign Up
             auth.createUserWithEmailAndPassword(email, password)
-                .then(() => {
+                .then(userCredential => {
                     showMessage('Account created! You can now log in.', 'success');
                 })
                 .catch(error => showMessage(error.message, 'error'));
@@ -196,63 +155,8 @@
     function showMessage(msg, type) {
         messageDiv.textContent = msg;
         messageDiv.className = type;
+        console.log(msg);
     }
-
-    function showHomepage() {
-        authContainer.style.display = "none";
-        usernameSetup.style.display = "none";
-        homepage.style.display = "block";
-    }
-
-    function checkUserProfile() {
-        const user = auth.currentUser;
-        if (!user) return;
-        const userRef = db.collection("users").doc(user.uid);
-        userRef.get().then(doc => {
-            if (!doc.exists || !doc.data().username) {
-                authContainer.style.display = "none";
-                homepage.style.display = "none";
-                usernameSetup.style.display = "block";
-            } else {
-                showHomepage();
-            }
-        });
-    }
-
-    saveUsernameBtn.addEventListener('click', async () => {
-        const username = usernameInput.value.trim();
-        if (!username) {
-            usernameMessage.textContent = "Username cannot be empty.";
-            usernameMessage.style.color = "red";
-            return;
-        }
-        const query = await db.collection("users").where("username", "==", username).get();
-        if (!query.empty) {
-            usernameMessage.textContent = "That username is already taken.";
-            usernameMessage.style.color = "red";
-            return;
-        }
-        const user = auth.currentUser;
-        await db.collection("users").doc(user.uid).set({
-            email: user.email,
-            username: username
-        }, { merge: true });
-        showHomepage();
-    });
-
-    logoutBtn.addEventListener('click', () => {
-        auth.signOut();
-    });
-
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            checkUserProfile();
-        } else {
-            authContainer.style.display = "block";
-            homepage.style.display = "none";
-            usernameSetup.style.display = "none";
-        }
-    });
 </script>
 
 </body>
