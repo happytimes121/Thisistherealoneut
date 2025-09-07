@@ -93,18 +93,17 @@
 </div>
 
 <script>
-    // Fixed Firebase configuration
+    // Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyB2bJ2KCaa7sauM5way_jvsl3URZ2Dn1bQ",
       authDomain: "ultratagbattle.firebaseapp.com",
       projectId: "ultratagbattle",
-      storageBucket: "ultratagbattle.appspot.com", // ✅ FIXED
+      storageBucket: "ultratagbattle.appspot.com",
       messagingSenderId: "952807178224",
       appId: "1:952807178224:web:ff274c332e070319662735",
       measurementId: "G-Q7SRR0WXW0"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
@@ -135,15 +134,16 @@
         }
 
         if (isLogin) {
-            // Login
             auth.signInWithEmailAndPassword(email, password)
                 .then(userCredential => {
-                    const user = userCredential.user;
-                    showMessage('Logged in successfully!', 'success');
+                    showMessage('Logged in successfully! Redirecting...', 'success');
+                    // Redirect to homepage.html after login
+                    setTimeout(() => {
+                      window.location.href = "homepage.html";
+                    }, 800);
                 })
                 .catch(error => showMessage(error.message, 'error'));
         } else {
-            // Sign Up
             auth.createUserWithEmailAndPassword(email, password)
                 .then(userCredential => {
                     showMessage('Account created! You can now log in.', 'success');
