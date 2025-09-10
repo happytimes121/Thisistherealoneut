@@ -32,10 +32,7 @@ h1 {
     letter-spacing: 2px;
     text-shadow: 0 0 10px #0f0, 0 0 20px #090;
 }
-h2 {
-    margin-bottom: 20px;
-    color: #333;
-}
+h2 { margin-bottom: 20px; color: #333; }
 input {
     width: 100%;
     padding: 12px;
@@ -57,28 +54,35 @@ button {
     cursor: pointer;
     transition: 0.3s;
 }
-button:hover {
-    background: #00cc00;
-    color: white;
-}
-.toggle-btn {
-    background: none;
-    color: #2a5298;
-    font-size: 14px;
-    margin-top: 10px;
-    cursor: pointer;
-}
+button:hover { background: #00cc00; color: white; }
+.toggle-btn { background: none; color: #2a5298; font-size: 14px; margin-top: 10px; cursor: pointer; }
 .error { color: red; font-size: 14px; }
 .success { color: green; font-size: 14px; }
 
+/* Homepage styling */
 #homepage {
     display: none;
-}
-#username-setup, #main-home {
+    max-width: 600px;
+    margin: 50px auto;
+    position: relative;
+    padding: 60px 40px 40px 40px;
     text-align: center;
 }
+#username-setup, #main-home { text-align: center; }
+#main-home { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+#play-btn {
+    width: 300px;
+    height: 100px;
+    font-size: 28px;
+    font-weight: bold;
+    border-radius: 16px;
+    background: #00ff00;
+    cursor: pointer;
+    transition: 0.3s;
+}
+#play-btn:hover { background: #00cc00; color: white; }
 #online-players {
-    margin-top: 20px;
+    width: 100%;
     text-align: left;
     background: #f4f4f4;
     padding: 10px;
@@ -117,12 +121,14 @@ button:hover {
 <div class="container" id="homepage">
     <button class="logout-btn" id="logout-btn">Log Out</button>
     <h1>Ultra Tag Battle</h1>
+
     <div id="username-setup">
         <h2>Create a Username</h2>
         <input type="text" id="username-input" placeholder="Enter username">
         <button id="save-username">Save Username</button>
         <div id="username-message"></div>
     </div>
+
     <div id="main-home">
         <button id="play-btn">Play Now</button>
         <h2>Online Players</h2>
@@ -175,10 +181,8 @@ toggleBtn.addEventListener('click', () => {
 actionBtn.addEventListener('click', () => {
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
-    if (!email || !password) {
-        showMessage('Please enter email and password', 'error');
-        return;
-    }
+    if (!email || !password) { showMessage('Please enter email and password', 'error'); return; }
+
     if (isLogin) {
         auth.signInWithEmailAndPassword(email, password)
             .then(() => {
@@ -195,10 +199,7 @@ actionBtn.addEventListener('click', () => {
     }
 });
 
-function showMessage(msg, type) {
-    messageDiv.textContent = msg;
-    messageDiv.className = type;
-}
+function showMessage(msg, type) { messageDiv.textContent = msg; messageDiv.className = type; }
 
 function showHomepage() {
     authContainer.style.display = "none";
@@ -212,7 +213,7 @@ function showHomepage() {
             mainHome.style.display = "none";
         } else {
             usernameSetup.style.display = "none";
-            mainHome.style.display = "block";
+            mainHome.style.display = "flex";
             startOnlinePlayersListener();
         }
     });
@@ -221,20 +222,15 @@ function showHomepage() {
 saveUsernameBtn.addEventListener('click', async () => {
     const username = usernameInput.value.trim();
     if (!username) {
-        usernameMessage.textContent = "Username cannot be empty.";
-        usernameMessage.style.color = "red";
-        return;
+        usernameMessage.textContent = "Username cannot be empty."; usernameMessage.style.color = "red"; return;
     }
     const query = await db.collection("users").where("username", "==", username).get();
-    if (!query.empty) {
-        usernameMessage.textContent = "That username is already taken.";
-        usernameMessage.style.color = "red";
-        return;
-    }
+    if (!query.empty) { usernameMessage.textContent = "That username is already taken."; usernameMessage.style.color = "red"; return; }
+
     const user = auth.currentUser;
     await db.collection("users").doc(user.uid).set({ username: username, online: true });
     usernameSetup.style.display = "none";
-    mainHome.style.display = "block";
+    mainHome.style.display = "flex";
     startOnlinePlayersListener();
 });
 
@@ -250,7 +246,6 @@ function startOnlinePlayersListener() {
     });
 }
 
-// Log out
 logoutBtn.addEventListener('click', () => {
     const user = auth.currentUser;
     if (user) {
@@ -262,7 +257,6 @@ logoutBtn.addEventListener('click', () => {
     }
 });
 
-// Mark user online
 auth.onAuthStateChanged(user => {
     if (user) {
         db.collection("users").doc(user.uid).set({ online: true }, { merge: true });
