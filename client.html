@@ -206,6 +206,7 @@ function showHomepage() {
     homepage.style.display = "block";
     const user = auth.currentUser;
     if (!user) return;
+
     const userRef = db.collection("users").doc(user.uid);
     userRef.get().then(doc => {
         if (!doc.exists || !doc.data().username) {
@@ -228,7 +229,7 @@ saveUsernameBtn.addEventListener('click', async () => {
     if (!query.empty) { usernameMessage.textContent = "That username is already taken."; usernameMessage.style.color = "red"; return; }
 
     const user = auth.currentUser;
-    await db.collection("users").doc(user.uid).set({ username: username, online: true });
+    await db.collection("users").doc(user.uid).set({ username: username, online: true }, { merge: true });
     usernameSetup.style.display = "none";
     mainHome.style.display = "flex";
     startOnlinePlayersListener();
@@ -248,25 +249,13 @@ function startOnlinePlayersListener() {
 
 logoutBtn.addEventListener('click', () => {
     const user = auth.currentUser;
-    if (user) {
-        db.collection("users").doc(user.uid).set({ online: false }, { merge: true });
-        auth.signOut().then(() => {
-            homepage.style.display = "none";
-            authContainer.style.display = "block";
-        });
-    }
+    if (user) db.collection("users").doc(user.uid).set({ online: false }, { merge: true });
+    auth.signOut().then(() => { homepage.style.display = "none"; authContainer.style.display = "block"; });
 });
 
 auth.onAuthStateChanged(user => {
-    if (user) {
-        db.collection("users").doc(user.uid).set({ online: true }, { merge: true });
-        showHomepage();
-        window.addEventListener("beforeunload", () => {
-            db.collection("users").doc(user.uid).set({ online: false }, { merge: true });
-        });
-    }
+    if (user) { db.collection("users").doc(user.uid).set({ online: true }, { merge: true }); showHomepage(); }
 });
 </script>
-
 </body>
 </html>
