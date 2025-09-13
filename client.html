@@ -1,203 +1,548 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Ultra Tag Battle</title>
-<!-- Firebase SDK -->
+
+<!-- Firebase compat -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
-  body { font-family: 'Roboto', sans-serif; margin: 0; height: 100vh; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #1e3c72, #2a5298); }
-  .container { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); width: 350px; text-align: center; }
-  h1 { font-size: 28px; color: #00ff00; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px #0f0, 0 0 20px #090; margin-bottom: 20px; }
-  h2 { margin-bottom: 20px; color: #333; }
-  input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
-  button { width: 100%; padding: 12px; margin-top: 12px; border: none; border-radius: 8px; background: #00ff00; color: black; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-  button:hover { background: #00cc00; color: white; }
-  .toggle-btn { background: none; color: #2a5298; font-size: 14px; margin-top: 10px; cursor: pointer; }
-  .error { color: red; font-size: 14px; }
-  .success { color: green; font-size: 14px; }
-  #homepage { display: none; }
-  #online-players { margin-top: 20px; text-align: left; background: #f4f4f4; padding: 10px; border-radius: 8px; max-height: 200px; overflow-y: auto; }
-  #logout-btn { background: red; color: white; width: auto; padding: 8px 16px; float: right; margin-bottom: 10px; }
+  html,body { height:100%; margin:0; font-family: 'Roboto', sans-serif; }
+  body { background: linear-gradient(135deg,#1e3c72,#2a5298); display:flex; justify-content:center; align-items:flex-start; }
+
+  /* Card */
+  .container { background:#fff; padding:30px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.4); width:360px; margin:40px auto; text-align:center; }
+  h1 { margin:0 0 12px 0; color:#00ff00; text-transform:uppercase; letter-spacing:2px; text-shadow:0 0 8px #0f0; }
+  input { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid #ccc; }
+  button { width:100%; padding:12px; margin:8px 0; background:#00ff00; border:none; border-radius:8px; font-weight:700; cursor:pointer; }
+  .toggle-btn { background:none; border:none; color:#2a5298; cursor:pointer; font-size:14px; }
+
+  /* Homepage (lobby) */
+  #homepage { display:none; width:700px; max-width:calc(100vw - 40px); padding:40px; box-sizing:border-box; position:relative; }
+  .logout-btn { position:absolute; top:18px; right:18px; background:red; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; }
+  #play-btn { width:320px; height:96px; font-size:28px; border-radius:16px; display:block; margin:48px auto; }
+  #online-players { text-align:left; background:#f4f4f4; padding:12px; border-radius:8px; max-height:200px; overflow:auto; }
+
+  /* Username panel (small card) */
+  .small-card { display:none; width:360px; background:#fff; padding:20px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.4); margin:20px auto; text-align:center; }
+
+  /* Game canvas */
+  #game-root { display:none; position:fixed; inset:0; width:100%; height:100%; background:#000; }
+  #crosshair {
+    position:fixed; left:50%; top:50%; width:14px; height:14px; margin-left:-7px; margin-top:-7px; pointer-events:none;
+  }
+  #crosshair:before, #crosshair:after {
+    content:''; position:absolute; left:50%; top:50%; background:#fff; transform:translate(-50%,-50%); 
+  }
+  #crosshair:before { width:2px; height:14px; }
+  #crosshair:after { width:14px; height:2px; }
+
+  /* small helper text */
+  .hint { font-size:13px; color:#666; margin-top:8px; }
 </style>
 </head>
 <body>
 
-<!-- Login / Signup -->
+<!-- Auth / Sign-up container -->
 <div class="container" id="auth-container">
   <h1>Ultra Tag Battle</h1>
-  <h2 id="form-title">Sign Up</h2>
-  <div id="message"></div>
-  <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Password">
-  <button id="action-btn">Sign Up</button>
-  <button class="toggle-btn" id="toggle-btn">Already have an account? Login</button>
+  <div id="message" style="min-height:20px"></div>
+  <input id="email" type="email" placeholder="Email" />
+  <input id="password" type="password" placeholder="Password" />
+  <button id="signup-btn">Sign Up</button>
+  <button id="login-btn">Log In</button>
+  <button class="toggle-btn" id="show-lobby-btn">Go to Lobby (if logged in)</button>
+  <p class="hint">Create an account, then log in. First login requires a username (kept permanently).</p>
 </div>
 
-<!-- Homepage -->
-<div class="container" id="homepage">
-  <button id="logout-btn">Log Out</button>
-  <div id="username-setup" style="display:none;">
-    <h2>Create a Username</h2>
-    <input type="text" id="username-input" placeholder="Enter username">
-    <button id="save-username">Save Username</button>
-    <div id="username-message"></div>
-  </div>
-  <div id="main-home" style="display:none;">
-    <button id="play-btn">Play Now</button>
-    <h2>Online Players</h2>
-    <div id="online-players"></div>
-  </div>
+<!-- Username setup (shows when needed) -->
+<div class="small-card" id="username-card">
+  <h3>Create your username</h3>
+  <input id="username-field" placeholder="Choose a username (letters/numbers only)" />
+  <button id="save-username">Save Username</button>
+  <div id="username-feedback" style="min-height:18px"></div>
 </div>
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyB2bJ2KCaa7sauM5way_jvsl3URZ2Dn1bQ",
-    authDomain: "ultratagbattle.firebaseapp.com",
-    projectId: "ultratagbattle",
-    storageBucket: "ultratagbattle.appspot.com",
-    messagingSenderId: "952807178224",
-    appId: "1:952807178224:web:ff274c332e070319662735",
-    measurementId: "G-Q7SRR0WXW0"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+<!-- Lobby / Homepage -->
+<div id="homepage" class="container">
+  <button class="logout-btn" id="logout-btn">Log Out</button>
+  <h1>Ultra Tag Battle</h1>
+  <button id="play-btn">Play Now</button>
+  <h3 style="margin-top:24px;">Online Players</h3>
+  <div id="online-players"><em>Loading...</em></div>
+</div>
 
-  let isLogin = false;
+<!-- Game root -->
+<div id="game-root">
+  <div id="crosshair"></div>
+  <!-- three.js canvas will be appended here -->
+  <button class="logout-btn" id="exit-game-btn" style="right:18px; top:18px;">Exit Game</button>
+</div>
 
-  const formTitle = document.getElementById('form-title');
-  const actionBtn = document.getElementById('action-btn');
-  const toggleBtn = document.getElementById('toggle-btn');
-  const messageDiv = document.getElementById('message');
-  const emailInput = document.getElementById('email');
-  const passwordInput = document.getElementById('password');
+<!-- Three.js module + game logic -->
+<script type="module">
+/* ============================
+   Firebase init (compat scripts loaded earlier)
+   ============================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyB2bJ2KCaa7sauM5way_jvsl3URZ2Dn1bQ",
+  authDomain: "ultratagbattle.firebaseapp.com",
+  projectId: "ultratagbattle",
+  storageBucket: "ultratagbattle.appspot.com",
+  messagingSenderId: "952807178224",
+  appId: "1:952807178224:web:ff274c332e070319662735",
+  measurementId: "G-Q7SRR0WXW0"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-  const authContainer = document.getElementById('auth-container');
-  const homepage = document.getElementById('homepage');
-  const usernameSetup = document.getElementById('username-setup');
-  const usernameInput = document.getElementById('username-input');
-  const saveUsernameBtn = document.getElementById('save-username');
-  const usernameMessage = document.getElementById('username-message');
-  const mainHome = document.getElementById('main-home');
-  const onlinePlayersDiv = document.getElementById('online-players');
-  const playBtn = document.getElementById('play-btn');
-  const logoutBtn = document.getElementById('logout-btn');
+/* ============================
+   Three.js imports (module)
+   ============================ */
+import * as THREE from 'https://unpkg.com/three@0.150.1/build/three.module.js';
+import { PointerLockControls } from 'https://unpkg.com/three@0.150.1/examples/jsm/controls/PointerLockControls.js';
 
-  toggleBtn.addEventListener('click', () => {
-    isLogin = !isLogin;
-    formTitle.textContent = isLogin ? 'Login' : 'Sign Up';
-    actionBtn.textContent = isLogin ? 'Login' : 'Sign Up';
-    toggleBtn.textContent = isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login";
-    messageDiv.textContent = '';
-  });
+/* ============================
+   UI elements
+   ============================ */
+const authContainer = document.getElementById('auth-container');
+const signupBtn = document.getElementById('signup-btn');
+const loginBtn = document.getElementById('login-btn');
+const messageDiv = document.getElementById('message');
+const showLobbyBtn = document.getElementById('show-lobby-btn');
 
-  actionBtn.addEventListener('click', () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-    if (!email || !password) { showMessage('Enter email & password', 'error'); return; }
+const usernameCard = document.getElementById('username-card');
+const usernameField = document.getElementById('username-field');
+const saveUsernameBtn = document.getElementById('save-username');
+const usernameFeedback = document.getElementById('username-feedback');
 
-    if (isLogin) {
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => { showMessage('Logged in!', 'success'); setTimeout(showHomepage, 500); })
-        .catch(error => showMessage(error.message, 'error'));
-    } else {
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(() => { showMessage('Account created! Now login.', 'success'); })
-        .catch(error => showMessage(error.message, 'error'));
-    }
-  });
+const homepage = document.getElementById('homepage');
+const playBtn = document.getElementById('play-btn');
+const onlinePlayersDiv = document.getElementById('online-players');
+const logoutBtn = document.getElementById('logout-btn');
 
-  function showMessage(msg, type) {
-    messageDiv.textContent = msg;
-    messageDiv.className = type;
+const gameRoot = document.getElementById('game-root');
+const exitGameBtn = document.getElementById('exit-game-btn');
+
+/* ============================
+   Auth / account / username logic
+   ============================ */
+function showMsg(str, isError=false) {
+  messageDiv.textContent = str;
+  messageDiv.style.color = isError ? 'crimson' : '#00aa00';
+}
+
+signupBtn.addEventListener('click', async () => {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  try {
+    if (!email || !password) throw new Error('Enter email and password');
+    await auth.createUserWithEmailAndPassword(email, password);
+    showMsg('Account created — please log in.');
+  } catch (e) { showMsg(e.message, true); }
+});
+
+loginBtn.addEventListener('click', async () => {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+    showMsg('Logged in.');
+    // show lobby (auth state handler will manage username prompt)
+    showLobby();
+  } catch(e) { showMsg(e.message, true); }
+});
+
+/* show lobby button (for convenience) */
+showLobbyBtn.addEventListener('click', showLobby);
+
+/* Save username on first login — username becomes permanent (we won't provide a 'change' UI) */
+saveUsernameBtn.addEventListener('click', async () => {
+  const val = usernameField.value.trim();
+  if (!val) { usernameFeedback.textContent = 'Username cannot be empty.'; usernameFeedback.style.color='red'; return; }
+  if (!/^[A-Za-z0-9_]{3,20}$/.test(val)) {
+    usernameFeedback.textContent = 'Use 3–20 letters/numbers/underscore only.';
+    usernameFeedback.style.color='red';
+    return;
   }
+  // uniqueness check
+  const q = await db.collection('users').where('username','==', val).get();
+  if (!q.empty) { usernameFeedback.textContent='Username already taken'; usernameFeedback.style.color='red'; return; }
+  const user = auth.currentUser;
+  if (!user) { usernameFeedback.textContent='Not signed in'; usernameFeedback.style.color='red'; return; }
+  await db.collection('users').doc(user.uid).set({ username: val, email: user.email, online: true }, { merge:true });
+  usernameCard.style.display = 'none';
+  homepage.style.display = 'block';
+  startOnlineListener();
+});
 
-  function showHomepage() {
-    authContainer.style.display = "none";
-    homepage.style.display = "block";
+/* logout */
+logoutBtn.addEventListener('click', async () => {
+  const user = auth.currentUser;
+  if (user) {
+    await db.collection('users').doc(user.uid).set({ online:false }, { merge:true });
+    await db.collection('serverPlayers').doc(user.uid).delete().catch(()=>{});
+  }
+  await auth.signOut();
+  cleanupGame(); // if in game
+  homepage.style.display = 'none';
+  usernameCard.style.display = 'none';
+  authContainer.style.display = 'block';
+  showMsg('Logged out.');
+});
 
-    const user = auth.currentUser;
-    if (!user) return;
+/* show lobby (checks username) */
+async function showLobby() {
+  const user = auth.currentUser;
+  if (!user) { showMsg('Not logged in', true); return; }
+  // ensure user doc exists and username enforced:
+  const doc = await db.collection('users').doc(user.uid).get();
+  if (!doc.exists || !doc.data().username) {
+    // show username card
+    authContainer.style.display = 'none';
+    usernameCard.style.display = 'block';
+    homepage.style.display = 'none';
+    usernameField.value = '';
+    usernameFeedback.textContent = '';
+    return;
+  }
+  // mark online and show homepage
+  await db.collection('users').doc(user.uid).set({ online:true }, { merge:true });
+  authContainer.style.display = 'none';
+  usernameCard.style.display = 'none';
+  homepage.style.display = 'block';
+  startOnlineListener();
+}
 
-    const userRef = db.collection("users").doc(user.uid);
-    userRef.get().then(doc => {
-      if (!doc.exists || !doc.data().username) {
-        usernameSetup.style.display = "block";
-        mainHome.style.display = "none";
-      } else {
-        usernameSetup.style.display = "none";
-        mainHome.style.display = "block";
-        startServerPlayersListener();
+/* realtime lobby listener (for 'online' players list) */
+let onlineUnsub = null;
+function startOnlineListener() {
+  if (onlineUnsub) onlineUnsub(); // remove previous
+  onlineUnsub = db.collection('users').where('online','==',true)
+    .onSnapshot(snap => {
+      onlinePlayersDiv.innerHTML = '';
+      snap.forEach(d => {
+        const data = d.data();
+        const el = document.createElement('div');
+        el.textContent = data.username || data.email || 'Unknown';
+        onlinePlayersDiv.appendChild(el);
+      });
+      if (snap.empty) onlinePlayersDiv.innerHTML = '<em>No players online</em>';
+    }, err => {
+      console.error('online listener error', err);
+    });
+}
+
+/* clean up on page unload */
+window.addEventListener('beforeunload', async () => {
+  const user = auth.currentUser;
+  if (user) {
+    // mark offline & remove from serverPlayers
+    try {
+      await db.collection('users').doc(user.uid).set({ online:false }, { merge:true });
+      await db.collection('serverPlayers').doc(user.uid).delete();
+    } catch(e) { /* ignore network-on-unload errors */ }
+  }
+});
+
+/* ============================
+   Server lobby (join) & Game screen
+   ============================ */
+
+/* When player clicks Play Now, show main homepage (we already are on homepage).
+   When they click Join Server in previous conversation, now we do both:
+   - add to serverPlayers
+   - enter the 3D first-person view
+*/
+
+playBtn.addEventListener('click', () => {
+  // On this design Play Now simply reveals a Join Server prompt inside the lobby:
+  // We'll directly proceed to join+enter game.
+  joinServerAndEnter();
+});
+
+/* Join server: add doc (uid) to serverPlayers and then enter game view */
+async function joinServerAndEnter() {
+  const user = auth.currentUser;
+  if (!user) { alert('You must be logged in'); return; }
+  const userDoc = await db.collection('users').doc(user.uid).get();
+  const username = userDoc.exists ? userDoc.data().username : (user.email || 'Player');
+  // set serverPlayers doc
+  await db.collection('serverPlayers').doc(user.uid).set({
+    username,
+    joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge:true });
+
+  // enter 3D view
+  enterGameScene();
+}
+
+/* Setup real-time listener for serverPlayers list shown in-game or lobby */
+let serverPlayersUnsub = null;
+function startServerPlayersListener() {
+  if (serverPlayersUnsub) serverPlayersUnsub();
+  serverPlayersUnsub = db.collection('serverPlayers')
+    .orderBy('joinedAt','asc')
+    .onSnapshot(snap => {
+      // You can display this either in lobby or game; here update the in-lobby online list too
+      const elList = document.getElementById('online-players');
+      if (elList) {
+        elList.innerHTML = '';
+        snap.forEach(d => {
+          const data = d.data();
+          const row = document.createElement('div');
+          row.textContent = data.username || 'Unknown';
+          elList.appendChild(row);
+        });
+        if (snap.empty) elList.innerHTML = '<em>No players in server</em>';
       }
-    });
+      // also update any in-game UI if needed (we'll use same data)
+      if (isInGame) updateServerPlayersInGame(snap);
+    }, err => console.error('serverPlayers listener error', err));
+}
+
+/* ============================
+   Three.js first-person scene
+   ============================ */
+import { Vector3 } from 'https://unpkg.com/three@0.150.1/build/three.module.js';
+
+let renderer, scene, camera, controls, clock;
+let isInGame = false;
+let serverPlayersInScene = {}; // map uid -> label mesh (not implemented complex)
+let animateId = null;
+const gameCanvasParent = gameRoot;
+
+async function enterGameScene() {
+  // show full-screen game container
+  authContainer.style.display = 'none';
+  homepage.style.display = 'none';
+  usernameCard.style.display = 'none';
+  gameRoot.style.display = 'block';
+  document.body.style.cursor = 'none';
+
+  // start serverPlayers listener
+  startServerPlayersListener();
+
+  // init three if not already
+  if (!renderer) initThree();
+
+  // pointer lock controls: click to lock
+  gameCanvasParent.addEventListener('click', () => {
+    if (controls && !controls.isLocked) controls.lock();
+  });
+
+  isInGame = true;
+  controls.lock(); // try lock (may prompt on first click)
+  clock.start();
+  animate();
+}
+
+/* Init three.js scene */
+function initThree() {
+  // renderer
+  renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.setClearColor(0x000000);
+  gameCanvasParent.appendChild(renderer.domElement);
+
+  // scene & camera
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 1.7, 6); // standing height on platform
+
+  // lights
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.7);
+  hemi.position.set(0,50,0);
+  scene.add(hemi);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  dir.position.set(5,10,7);
+  scene.add(dir);
+
+  // platform (metal-looking)
+  const platformGeom = new THREE.BoxGeometry(10, 0.6, 10);
+  // use MeshStandardMaterial with low roughness to look metallic
+  const metalMat = new THREE.MeshStandardMaterial({ color:0x555A60, metalness:0.9, roughness:0.15 });
+  const platform = new THREE.Mesh(platformGeom, metalMat);
+  platform.position.set(0, -0.3, 0);
+  scene.add(platform);
+
+  // edges / details: add a smaller raised center platform
+  const padGeom = new THREE.BoxGeometry(4, 0.2, 4);
+  const pad = new THREE.Mesh(padGeom, new THREE.MeshStandardMaterial({ color:0x22272b, metalness:0.8, roughness:0.1 }));
+  pad.position.set(0, 0.1, 0);
+  scene.add(pad);
+
+  // skybox-ish gradient
+  const skyGeo = new THREE.SphereGeometry(100, 32, 32);
+  const skyMat = new THREE.MeshBasicMaterial({ color:0x0b0f1a, side:THREE.BackSide });
+  const sky = new THREE.Mesh(skyGeo, skyMat);
+  scene.add(sky);
+
+  // simple grid lines on platform
+  const grid = new THREE.GridHelper(10, 10, 0x444444, 0x333333);
+  grid.position.y = 0.01;
+  scene.add(grid);
+
+  // pointer lock controls
+  controls = new PointerLockControls(camera, renderer.domElement);
+  controls.getObject().position.set(0,1.7,2); // initial position just above platform
+  scene.add(controls.getObject());
+
+  // movement state
+  const move = { forward:false, back:false, left:false, right:false, sprint:false };
+  const velocity = new THREE.Vector3();
+  const direction = new THREE.Vector3();
+  clock = new THREE.Clock();
+
+  function onKeyDown(e) {
+    switch(e.code) {
+      case 'ArrowUp': case 'KeyW': move.forward=true; break;
+      case 'ArrowLeft': case 'KeyA': move.left=true; break;
+      case 'ArrowDown': case 'KeyS': move.back=true; break;
+      case 'ArrowRight': case 'KeyD': move.right=true; break;
+      case 'ShiftLeft': case 'ShiftRight': move.sprint=true; break;
+    }
   }
-
-  saveUsernameBtn.addEventListener('click', async () => {
-    const username = usernameInput.value.trim();
-    if (!username) { usernameMessage.textContent = "Username cannot be empty."; usernameMessage.style.color="red"; return; }
-
-    const query = await db.collection("users").where("username", "==", username).get();
-    if (!query.empty) { usernameMessage.textContent = "Username taken!"; usernameMessage.style.color="red"; return; }
-
-    const user = auth.currentUser;
-    await db.collection("users").doc(user.uid).set({ username, online: true }, { merge: true });
-    usernameSetup.style.display = "none";
-    mainHome.style.display = "block";
-    startServerPlayersListener();
-  });
-
-  playBtn.addEventListener('click', async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      alert("No user logged in");
-      return;
+  function onKeyUp(e) {
+    switch(e.code) {
+      case 'ArrowUp': case 'KeyW': move.forward=false; break;
+      case 'ArrowLeft': case 'KeyA': move.left=false; break;
+      case 'ArrowDown': case 'KeyS': move.back=false; break;
+      case 'ArrowRight': case 'KeyD': move.right=false; break;
+      case 'ShiftLeft': case 'ShiftRight': move.sprint=false; break;
     }
-    const userDoc = await db.collection("users").doc(user.uid).get();
-    await db.collection("serverPlayers").doc(user.uid).set({
-      username: userDoc.data().username,
-      joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-  });
-
-  logoutBtn.addEventListener('click', async () => {
-    const user = auth.currentUser;
-    if (user) {
-      await db.collection("users").doc(user.uid).set({ online: false }, { merge: true });
-      await db.collection("serverPlayers").doc(user.uid).delete();
-    }
-    auth.signOut();
-    homepage.style.display = "none";
-    authContainer.style.display = "block";
-  });
-
-  function startServerPlayersListener() {
-    db.collection("serverPlayers").onSnapshot(snapshot => {
-      onlinePlayersDiv.innerHTML = "<h3>Players in Server:</h3>";
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const p = document.createElement("p");
-        p.textContent = data.username || "Unknown Player";
-        onlinePlayersDiv.appendChild(p);
-      });
-    });
   }
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('keyup', onKeyUp);
 
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      db.collection("users").doc(user.uid).set({ online: true }, { merge: true });
-      showHomepage();
-      window.addEventListener("beforeunload", () => {
-        db.collection("users").doc(user.uid).set({ online: false }, { merge: true });
-        db.collection("serverPlayers").doc(user.uid).delete();
-      });
-    }
+  // resizer
+  window.addEventListener('resize', () => {
+    if (!camera || !renderer) return;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
   });
+
+  // update loop closure variables
+  animate = function animate() {
+    animateId = requestAnimationFrame(animate);
+    const delta = Math.min(0.05, clock.getDelta());
+    // basic movement physics
+    velocity.x -= velocity.x * 10.0 * delta;
+    velocity.z -= velocity.z * 10.0 * delta;
+
+    direction.z = Number(move.forward) - Number(move.back);
+    direction.x = Number(move.right) - Number(move.left);
+    direction.normalize(); // this ensures consistent movements in all directions
+
+    const speed = move.sprint ? 8.0 : 4.0;
+    if (move.forward || move.back) velocity.z -= direction.z * speed * delta;
+    if (move.left || move.right) velocity.x -= direction.x * speed * delta;
+
+    // translate the controls object (camera parent)
+    controls.moveRight(-velocity.x * delta);
+    controls.moveForward(-velocity.z * delta);
+
+    // keep player on platform bounds (clamp)
+    const pos = controls.getObject().position;
+    pos.x = THREE.MathUtils.clamp(pos.x, -4.5, 4.5);
+    pos.z = THREE.MathUtils.clamp(pos.z, -4.5, 4.5);
+    pos.y = Math.max(1.7, pos.y); // keep standing height
+
+    renderer.render(scene, camera);
+  };
+}
+
+/* update server players overlay if in-game (we'll show in console/log for now) */
+function updateServerPlayersInGame(snapshot) {
+  // simple overlay in console (could draw 3D text in scene later)
+  console.log('Server players update:', snapshot.docs.map(d=>d.data().username));
+}
+
+/* cleanup game */
+function cleanupGame() {
+  if (!isInGame) return;
+  isInGame = false;
+  // stop animation
+  if (animateId) cancelAnimationFrame(animateId);
+  // remove renderer DOM
+  if (renderer && renderer.domElement) {
+    renderer.domElement.remove();
+    renderer.dispose();
+  }
+  renderer = null; scene = null; camera = null; controls = null; clock = null;
+  // unsubscribe serverPlayers
+  if (serverPlayersUnsub) { serverPlayersUnsub(); serverPlayersUnsub = null; }
+  document.body.style.cursor = 'default';
+  gameRoot.style.display = 'none';
+}
+
+/* when exiting game with button */
+exitGameBtn.addEventListener('click', async () => {
+  // remove from serverPlayers
+  const user = auth.currentUser;
+  if (user) {
+    await db.collection('serverPlayers').doc(user.uid).delete().catch(()=>{});
+  }
+  cleanupGame();
+  // go back to homepage UI
+  homepage.style.display = 'block';
+  startServerPlayersListener(); // refresh lobby list
+});
+
+/* update in-lobby and game players lists */
+function startServerPlayersListener() {
+  // keep separate unsub so both lobby and game can reuse
+  if (serverPlayersUnsub) serverPlayersUnsub();
+  serverPlayersUnsub = db.collection('serverPlayers').orderBy('joinedAt','asc')
+    .onSnapshot(snap => {
+      // update lobby's online list
+      const el = document.getElementById('online-players');
+      if (el) {
+        el.innerHTML = '';
+        snap.forEach(d => {
+          const data = d.data();
+          const row = document.createElement('div');
+          row.textContent = data.username || 'Unknown';
+          el.appendChild(row);
+        });
+        if (snap.empty) el.innerHTML = '<em>No players in server</em>';
+      }
+      // also update game view if active
+      if (isInGame) updateServerPlayersInGame(snap);
+    }, err => console.error(err));
+}
+
+/* ============================
+   Utility: ensure signed-in user marked online on auth change
+   ============================ */
+let serverPlayersUnsub = null;
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    // set online true
+    await db.collection('users').doc(user.uid).set({ online:true }, { merge:true });
+    // show lobby automatically
+    showLobby();
+  } else {
+    // logged out: hide UI
+    homepage.style.display = 'none';
+    usernameCard.style.display = 'none';
+    authContainer.style.display = 'block';
+    if (onlineUnsub) { onlineUnsub(); onlineUnsub = null; }
+  }
+});
+
+/* helpers */
+let onlineUnsub = null; // defined earlier in startOnlineListener scope
+
 </script>
-
 </body>
 </html>
