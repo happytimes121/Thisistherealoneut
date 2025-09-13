@@ -27,29 +27,91 @@ const server = http.createServer((req, res) => {
 // WebSocket server attached to HTTP server
 const wss = new WebSocket.Server({ server });
 
-// Broadcast function
-function broadcast(message, sender) {
+// In-memory accounts and online tracking
+let accounts = {};      // { email: { password, username } }
+let onlineUsers = {};   // { socket.id: username }
+
+// Helper: broadcast to all clients
+function broadcast(data) {
+  const msg = JSON.stringify(data);
   wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN && client !== sender) {
-      client.send(message);
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(msg);
     }
   });
 }
 
-// When a client connects
-wss.on("connection", (socket) => {
-  console.log("New player connected");
-  socket.send("Welcome to the multiplayer server!");
+// Generate simple socket IDs
+let nextId = 1;
 
-  socket.on("message", (message) => {
-    console.log("Received:", message.toString());
-    // Send message to all other clients
-    broadcast(message.toString(), socket);
+// Handle new connections
+wss.on("connection", (socket) => {
+  const socketId = nextId++;
+  console.log("New connection:", socketId);
+
+  socket.on("message", (raw) => {
+    let msg;
+    try {
+      msg = JSON.parse(raw);
+    } catch {
+      console.log("Invalid JSON:", raw);
+      return;
+    }
+
+    // Handle events
+    if (msg.type === "register") {
+      const { email, password } = msg;
+      if (accounts[email]) {
+        socket.send(JSON.stringify({ type: "registerResult", success: false, message: "Email already registered" }));
+      } else {
+        accounts[email] = { password, username: null };
+        socket.send(JSON.stringify({ type: "registerResult", success: true }));
+      }
+    }
+
+    else if (msg.type === "login") {
+      const { email, password } = msg;
+      const account = accounts[email];
+      if (!account || account.password !== password) {
+        socket.send(JSON.stringify({ type: "loginResult", success: false, message: "Invalid credentials" }));
+      } else {
+        socket.email = email; // attach email to socket
+        if (!account.username) {
+          socket.send(JSON.stringify({ type: "loginResult", success: true, needsUsername: true }));
+        } else {
+          onlineUsers[socketId] = account.username;
+          broadcast({ type: "updatePlayers", players: Object.values(onlineUsers) });
+          socket.send(JSON.stringify({ type: "loginResult", success: true, needsUsername: false, username: account.username }));
+        }
+      }
+    }
+
+    else if (msg.type === "setUsername") {
+      const { username } = msg;
+      const email = socket.email;
+      if (!email || !accounts[email]) return;
+
+      // check if taken
+      if (Object.values(accounts).some(acc => acc.username === username)) {
+        socket.send(JSON.stringify({ type: "setUsernameResult", success: false, message: "Username taken" }));
+        return;
+      }
+
+      accounts[email].username = username;
+      onlineUsers[socketId] = username;
+
+      broadcast({ type: "updatePlayers", players: Object.values(onlineUsers) });
+      socket.send(JSON.stringify({ type: "setUsernameResult", success: true, username }));
+    }
   });
 
-  socket.on("close", () => console.log("Player disconnected"));
+  socket.on("close", () => {
+    delete onlineUsers[socketId];
+    broadcast({ type: "updatePlayers", players: Object.values(onlineUsers) });
+    console.log("Disconnected:", socketId);
+  });
 });
 
 server.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 });
